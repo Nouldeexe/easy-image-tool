@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>أداة تحويل وضغط الصور الاحترافية</title>
+    <style>
+        /* المتغيرات الأساسية لدعم الوضعين الفاتح والداكن */
+        :root {
+            --primary-color: #4F46E5;
+            --secondary-color: #10B981;
+            --danger-color: #EF4444;
+            --bg-color: #F1F5F9;
+            --container-bg: #FFFFFF;
+            --text-main: #1E293B;
+            --text-muted: #64748B;
+            --border-color: #CBD5E1;
+            --card-bg: #F8FAFC;
+        }
+
+        /* متغيرات الوضع الداكن */
+        body.dark-mode {
+            --bg-color: #0F172A;
+            --container-bg: #1E293B;
+            --text-main: #F8FAFC;
+            --text-muted: #94A3B8;
+            --border-color: #334155;
+            --card-bg: #111827;
+        }
+
+        * {
+            box-sizing: border-box;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: var(--text-main);
+        }
+
+        /* زر تبديل الوضع الداكن - محسّن ومريح للمس */
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: var(--container-bg);
+            border: 2px solid var(--border-color);
+            color: var(--text-main);
+            padding: 12px;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+            width: 48px;
+            height: 48px;
+            z-index: 1000;
+        }
+
+        .theme-toggle:active { transform: scale(0.9); }
+
+        .container {
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+            background: var(--container-bg);
+            padding: 40px 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            position: relative;
+        }
+
+        h1 { color: var(--text-main); margin-bottom: 10px; font-size: 24px; }
+        p { color: var(--text-muted); margin-bottom: 30px; font-size: 15px; line-height: 1.6; }
+
+        .upload-area {
+            border: 2px dashed var(--border-color);
+            border-radius: 16px;
+            padding: 40px 20px;
+            margin-bottom: 20px;
+            color: var(--text-muted);
+            background-color: var(--card-bg);
+            cursor: pointer;
+        }
+
+        .upload-area.active {
+            border-color: var(--primary-color);
+            background-color: #EEF2FF;
+        }
+
+        /* أزرار مرنة وتفاعلية */
+        .btn {
+            border: none;
+            border-radius: 50px;
+            padding: 16px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.1s, opacity 0.2s;
+            touch-action: manipulation;
+            user-select: none;
+            color: white;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn:active { transform: scale(0.96); }
+        .btn-primary { background-color: var(--primary-color); box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3); }
+        .btn-success { background-color: var(--secondary-color); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); }
+        .btn-danger { background-color: var(--danger-color); padding: 16px; font-size: 16px; }
+
+        .editor-section {
+            display: none;
+            margin-top: 30px;
+            text-align: right;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .image-preview {
+            max-width: 100%;
+            max-height: 250px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* بطاقة معلومات الصورة الجديدة */
+        .info-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 12px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-around;
+            font-size: 14px;
+            color: var(--text-main);
+        }
+
+        .control-group { margin-bottom: 20px; }
+        .control-group label { display: block; font-weight: bold; color: var(--text-main); margin-bottom: 8px; font-size: 15px; }
+        
+        select, input[type="range"] {
+            width: 100%;
+            padding: 14px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            font-size: 16px;
+            background-color: var(--container-bg);
+            color: var(--text-main);
+            outline: none;
+        }
+
+        input[type="range"] {
+            padding: 0;
+            height: 8px;
+            background: var(--border-color);
+            appearance: none;
+            border: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+            flex-direction: column;
+        }
+
+        @media (min-width: 600px) {
+            .action-buttons { flex-direction: row; }
+            .theme-toggle { left: calc(50% - 330px); top: 40px; } /* محاذاة الزر بجانب الكارت في الشاشات الكبيرة */
+        }
+    </style>
+</head>
+<body>
+
+    <!-- زر تبديل الوضع الداكن / الفاتح -->
+    <button class="theme-toggle" id="theme-toggle" aria-label="تبديل المظهر">
+        <svg id="theme-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+    </button>
+
+    <div class="container">
+        <h1>أداة تحويل وضغط الصور الذكية</h1>
+        <p>عدّل مقاسات صورك، غير صيغتها، واضغط حجمها فوراً بدون التضحية بالخصوصية.</p>
+        
+        <!-- واجهة الرفع -->
+        <div id="upload-section">
+            <div class="upload-area" id="drop-zone">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 10px;">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <br>اسحب وأفلت الصورة هنا أو اضغط بالأسفل
+            </div>
+            <button class="btn btn-primary" id="upload-btn">اختر صورة للبدء</button>
+            <input type="file" id="file-input" style="display: none;" accept="image/png, image/jpeg, image/webp">
+        </div>
+
+        <!-- واجهة التعديل والتحويل المتقدمة -->
+        <div class="editor-section" id="editor-section">
+            <img id="preview-image" class="image-preview" src="" alt="معاينة الصورة">
+            
+            <!-- كارت معلومات الصورة الجديد -->
+            <div class="info-card">
+                <div>الحجم الأصلي: <strong id="info-size">-</strong></div>
+                <div>الأبعاد: <strong id="info-dims">-</strong></div>
+            </div>
+
+            <!-- ميزة تغيير الأبعاد الجديدة -->
+            <div class="control-group">
+                <label for="scale-slider">تغيير المقاس (الأبعاد): <span id="scale-value">100%</span></label>
+                <input type="range" id="scale-slider" min="10" max="100" step="5" value="100">
+            </div>
+
+            <div class="control-group">
+                <label for="format-select">تحويل إلى صيغة:</label>
+                <select id="format-select">
+                    <option value="image/jpeg">JPEG (حجم مثالي للمواقع)</option>
+                    <option value="image/png">PNG (حفاظ كامل على الجودة والشفافية)</option>
+                    <option value="image/webp">WebP (أحدث صيغة بأقل حجم ممكن)</option>
+                </select>
+            </div>
+
+            <div class="control-group" id="quality-group">
+                <label for="quality-slider">مستوى الضغط (الجودة): <span id="quality-value">80%</span></label>
+                <input type="range" id="quality-slider" min="0.1" max="1" step="0.05" value="0.8">
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-success" id="download-btn">تحميل ومعالجة</button>
+                <button class="btn btn-danger" id="reset-btn">إلغاء والصعود مجدداً</button>
+            </div>
+        </div>
+    </div>
+
+    <canvas id="canvas" style="display: none;"></canvas>
+
+    <script>
+        // العناصر البرمجية
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        const uploadBtn = document.getElementById('upload-btn');
+        const fileInput = document.getElementById('file-input');
+        const dropZone = document.getElementById('drop-zone');
+        const uploadSection = document.getElementById('upload-section');
+        const editorSection = document.getElementById('editor-section');
+        const previewImage = document.getElementById('preview-image');
+        const formatSelect = document.getElementById('format-select');
+        const qualitySlider = document.getElementById('quality-slider');
+        const qualityValue = document.getElementById('quality-value');
+        const qualityGroup = document.getElementById('quality-group');
+        const scaleSlider = document.getElementById('scale-slider');
+        const scaleValue = document.getElementById('scale-value');
+        const infoSize = document.getElementById('info-size');
+        const infoDims = document.getElementById('info-dims');
+        const downloadBtn = document.getElementById('download-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        let currentImage = new Image();
+        let originalFileName = '';
+
+        // --- 1. نظام إدارة المظهر (Dark / Light Mode) ---
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark-mode');
+            updateThemeIcon(true);
+        }
+
+        themeToggle.addEventListener('click', () => {
+            const isDark = document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            updateThemeIcon(isDark);
+        });
+
+        function updateThemeIcon(isDark) {
+            themeIcon.innerHTML = isDark 
+                ? `<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="4.22" x2="19.78" y2="5.64"></line>`
+                : `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>`;
+        }
+
+        // --- 2. معالجة وحساب بيانات الصورة المسحوبة أو المرفوعة ---
+        uploadBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => { if (e.target.files.length > 0) processFile(e.target.files[0]); });
+
+        function processFile(file) {
+            if (!file.type.startsWith('image/')) { alert('من فضلك اختر ملف صورة مدعوم.'); return; }
+            
+            originalFileName = file.name.split('.').slice(0, -1).join('.');
+            
+            // عرض الحجم الأصلي بصيغة مقروءة
+            const sizeInMB = file.size / (1024 * 1024);
+            infoSize.textContent = sizeInMB > 1 ? sizeInMB.toFixed(2) + ' م.ب' : (file.size / 1024).toFixed(0) + ' ك.ب';
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                currentImage.src = event.target.result;
+                currentImage.onload = function() {
+                    previewImage.src = currentImage.src;
+                    infoDims.textContent = `${currentImage.width} × ${currentImage.height} بكسل`;
+                    uploadSection.style.display = 'none';
+                    editorSection.style.display = 'block';
+                    
+                    // تصفير شريط المقاس عند رفع صورة جديدة
+                    scaleSlider.value = 100;
+                    scaleValue.textContent = '100%';
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // --- 3. استجابة عناصر التحكم التفاعلية ---
+        scaleSlider.addEventListener('input', function() { scaleValue.textContent = this.value + '%'; });
+        qualitySlider.addEventListener('input', function() { qualityValue.textContent = Math.round(this.value * 100) + '%'; });
+
+        formatSelect.addEventListener('change', function() {
+            if (this.value === 'image/png') {
+                qualityGroup.style.opacity = '0.3';
+                qualitySlider.disabled = true;
+            } else {
+                qualityGroup.style.opacity = '1';
+                qualitySlider.disabled = false;
+            }
+        });
+
+        // --- 4. عملية التعديل والتحميل الفعلي بالاعتماد على المدخلات الجديدة ---
+        downloadBtn.addEventListener('click', function() {
+            const scale = parseFloat(scaleSlider.value) / 100;
+            
+            // احتساب الأبعاد الجديدة بناءً على شريط المقاس المعين
+            canvas.width = currentImage.width * scale;
+            canvas.height = currentImage.height * scale;
+
+            // إعادة رسم وتعديل حجم الصورة داخل الذاكرة
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
+
+            const selectedFormat = formatSelect.value;
+            const selectedQuality = parseFloat(qualitySlider.value);
+            const convertedDataUrl = canvas.toDataURL(selectedFormat, selectedQuality);
+
+            let ext = 'jpg';
+            if(selectedFormat === 'image/png') ext = 'png';
+            if(selectedFormat === 'image/webp') ext = 'webp';
+
+            const link = document.createElement('a');
+            link.download = `${originalFileName}-modified.${ext}`;
+            link.href = convertedDataUrl;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+
+        resetBtn.addEventListener('click', function() {
+            fileInput.value = '';
+            editorSection.style.display = 'none';
+            uploadSection.style.display = 'block';
+        });
+
+        // دعم السحب والإفلات
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('active'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('active'));
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('active');
+            if (e.dataTransfer.files.length > 0) processFile(e.dataTransfer.files[0]);
+        });
+    </script>
+</body>
+  </html>
+  
